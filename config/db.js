@@ -1,5 +1,5 @@
+require('dotenv').config();
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const dbConnection = new DynamoDBClient({
   region: process.env.AWS_REGION,
@@ -8,6 +8,5 @@ const dbConnection = new DynamoDBClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
-const dynamoDB = DynamoDBDocumentClient.from(dbConnection);
 
-module.exports = dynamoDB;
+module.exports = dbConnection;

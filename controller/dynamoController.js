@@ -82,7 +82,7 @@ async function saveFAQ(req, res) {
 // Lấy FAQ
 async function getFAQ(req, res) {
     try {
-        const faqs = await dynamoService.getFAQs();
+        const faqs = await dynamoService.getFAQ();
         res.status(200).json(faqs);
     } catch (error) {
         res.status(500).json({ error: error.message });

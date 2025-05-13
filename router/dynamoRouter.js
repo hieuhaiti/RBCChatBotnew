@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const dynamoController = require('../controller/dynamoController');
 
+// echo
+router.get('/', (req, res) => {
+    res.send('DynamoDB API');
+});
 // Customers
 // Lưu thông tin khách hàng
 router.post('/customers', dynamoController.saveCustomer);
@@ -18,19 +22,11 @@ router.get('/prompts', dynamoController.getPrompt);
 // Xóa prompt
 router.delete('/prompts', dynamoController.deletePrompt);
 
-// Threads
-// Lấy thông tin thread
-router.get('/threads/:senderId', dynamoController.getThread);
-// Tạo thread
-router.post('/threads', dynamoController.createThread);
-// Xóa thread
-router.delete('/threads/:senderId', dynamoController.deleteThread);
-
 // FAQs
 // Lưu FAQ
 router.post('/faqs', dynamoController.saveFAQ);
 // Lấy FAQ
-router.get('/faqs', dynamoController.getFAQs);
+router.get('/faqs', dynamoController.getFAQ);
 // Xóa FAQ
 router.delete('/faqs/:faqId', dynamoController.deleteFAQ);
 

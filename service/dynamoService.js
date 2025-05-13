@@ -1,13 +1,13 @@
 
 const { GetCommand, PutCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
-const dynamoDB = require("../config/db");
-const schemaFields = require("../models/schemaFields");
+const { dynamoDB } = require("../config/dynamoModels");
+const schemaFields = require("../config/schemaFields");
 const systemPrompt = require("../config/systemPrompt");
+
 // Customers
 // Chuẩn hóa dữ liệu khách hàng
 function normalizeCustomerData(entities, senderId) {
     const item = { id: senderId };
-
     schemaFields.forEach((field) => {
         if (entities[field.name] !== undefined) {
             item[field.name] = entities[field.name];
@@ -131,7 +131,7 @@ async function deleteFAQ(faqId) {
 async function getTokenUsage(token_id) {
     const params = {
         TableName: "TokenUsage",
-        Key: { id: `token_id` },
+        Key: { id: token_id },
     };
     const { Item } = await dynamoDB.send(new GetCommand(params));
     return Item;

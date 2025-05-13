@@ -1,16 +1,9 @@
-const {
-    DynamoDBClient,
-    CreateTableCommand,
-} = require("@aws-sdk/client-dynamodb");
+const { CreateTableCommand, } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, } = require('@aws-sdk/lib-dynamodb');
+const dbConnection = require("./db");
+const logger = require("../service/ultils/Logger");
 
-const client = new DynamoDBClient({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
-});
-const dynamoDB = DynamoDBDocumentClient.from(client);
+const dynamoDB = DynamoDBDocumentClient.from(dbConnection);
 
 // Hàm tạo các bảng
 async function setupTables() {
@@ -43,7 +36,7 @@ async function setupTables() {
 
     for (const table of tables) {
         try {
-            await client.send(new CreateTableCommand(table));
+            await dynamoDB.send(new CreateTableCommand(table));
             await new Promise((resolve) => setTimeout(resolve, 5000)); // Đợi 5 giây để bảng sẵn sàng
         } catch (error) {
             if (error.name === "ResourceInUseException") {

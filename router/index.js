@@ -6,6 +6,6 @@ router.get('/', (req, res) => {
     res.send('API Root');
 });
 
-router.get('/dynamo', dynamoRouter);
+router.use('/dynamo', dynamoRouter);
 
 module.exports = router;
