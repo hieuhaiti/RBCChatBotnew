@@ -1,11 +1,16 @@
 const axios = require("axios");
 const dynamoService = require("./dynamoService");
-const logger = require("../utils/logger");
-const dynamoService = require("./dynamoService");
+const logger = require("../service/utils/Logger");
+
+const maxAttempts = Number(process.env.POLL_MAX_ATTEMPTS || 10);
+const baseDelay = Number(process.env.POLL_BASE_DELAY_MS || 300);
+const timeout = Number(process.env.API_TIMEOUT_MS || 10000);
+
+const threadLocks = new Set();
 
 // get threadId
 async function getThreadId(senderId) {
-    const customer = await getCustomerInfo(senderId);
+    const customer = await dynamoService.getCustomerInfo(senderId);
     if (customer.threadId) {
         return customer.threadId;
     }
@@ -25,6 +30,54 @@ async function getThreadId(senderId) {
     return threadId;
 }
 
+// Kiểm tra trạng thái run
+async function waitForNoActiveRun(threadId, maxAttempts = 10, delayMs = 1000) {
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            const res = await axios.get(`${process.env.OPENAI_URL}/threads/${threadId}/runs`, {
+                headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    "OpenAI-Beta": "assistants=v2",
+                },
+            });
+
+            // Lấy run mới nhất trước
+            const activeRun = res.data.data
+                .sort((a, b) => b.created_at - a.created_at)
+                .find(run => ['queued', 'in_progress'].includes(run.status));
+
+            if (!activeRun) {
+                logger.info(`✅ Thread ${threadId} đã sẵn sàng.`);
+                return;
+            }
+
+            logger.info(`⏳ Run ${activeRun.id} vẫn đang hoạt động. Chờ ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+
+        } catch (error) {
+            logger.error(`❌ Lỗi kiểm tra run active: ${error.message}`);
+            if (i === maxAttempts - 1) throw new Error('Hết số lần kiểm tra thread bận');
+        }
+    }
+
+    throw new Error(`❌ Thread ${threadId} vẫn bận sau ${maxAttempts} lần thử.`);
+}
+
+// Khóa thread để tránh gửi nhiều request cùng lúc
+async function runWithThreadLock(threadId, fn) {
+    if (threadLocks.has(threadId)) {
+        logger.warn(`⛔ Thread ${threadId} đang bị khóa, bỏ qua request.`);
+        return null; // hoặc response mặc định
+    }
+
+    threadLocks.add(threadId);
+    try {
+        return await fn();
+    } finally {
+        threadLocks.delete(threadId);
+    }
+}
+
 // Gửi messages đến OpenAI
 async function sendMessageToGPT(threadId, prompt) {
     try {
@@ -36,7 +89,7 @@ async function sendMessageToGPT(threadId, prompt) {
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'OpenAI-Beta': 'assistants=v2',
                 },
-                timeout: process.env.API_TIMEOUT_MS
+                timeout: timeout
             }
         );
     } catch (error) {
@@ -66,9 +119,13 @@ async function sendMessageToGPT(threadId, prompt) {
 // Poll run status với exponential backoff.
 async function pollRunStatus(threadId, runId) {
     let attempts = 0;
-    while (attempts < process.env.POLL_MAX_ATTEMPTS) {
+    const maxAttempts = Number(process.env.POLL_MAX_ATTEMPTS || 10);
+    const baseDelay = Number(process.env.POLL_BASE_DELAY_MS || 300);
+    const timeout = Number(process.env.API_TIMEOUT_MS || 10000);
+
+    while (attempts < maxAttempts) {
         attempts++;
-        const delay = process.env.POLL_MAX_DELAY * Math.pow(2, attempts - 1);
+        const delay = baseDelay * Math.pow(2, attempts - 1);
         await new Promise(resolve => setTimeout(resolve, delay));
 
         try {
@@ -77,7 +134,7 @@ async function pollRunStatus(threadId, runId) {
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'OpenAI-Beta': 'assistants=v2',
                 },
-                timeout: process.env.API_TIMEOUT_MS,
+                timeout: timeout,
             });
 
             logger.info(`Kiểm tra trạng thái run ${runId}, lần ${attempts}`);
@@ -89,7 +146,7 @@ async function pollRunStatus(threadId, runId) {
 
         } catch (error) {
             logger.error(`Lỗi kiểm tra run (lần ${attempts}): ${error.message}`, { stack: error.stack });
-            if (attempts === process.env.POLL_MAX_ATTEMPTS) throw error;
+            if (attempts === maxAttempts) throw error;
         }
     }
 
@@ -103,7 +160,7 @@ async function fetchAssistantMessage(threadId) {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             'OpenAI-Beta': 'assistants=v2',
         },
-        timeout: process.env.API_TIMEOUT_MS,
+        timeout: timeout,
     });
 
     // const lastAssistantMessage = [...messages].reverse().find(msg => msg.role === 'assistant');
@@ -126,27 +183,31 @@ function parseAssistantResponse(content) {
 }
 
 async function getAssistantResponse(threadId, senderId, prompt) {
-    const runId = await sendMessageToGPT(threadId, prompt);
-    const runData = await pollRunStatus(threadId, runId);
-    if (runData.status !== 'completed') {
-        throw new Error(`Run thất bại với trạng thái: ${runData.status}`);
-    }
+    return await runWithThreadLock(threadId, async () => {
 
-    const lastMessage = await fetchAssistantMessage(threadId);
+        await waitForNoActiveRun(threadId);
+        const runId = await sendMessageToGPT(threadId, prompt);
+        const runData = await pollRunStatus(threadId, runId);
+        if (runData.status !== 'completed') {
+            throw new Error(`Run thất bại với trạng thái: ${runData.status}`);
+        }
 
-    if (!lastMessage) throw new Error('Không tìm thấy phản hồi từ Assistant');
+        const lastMessage = await fetchAssistantMessage(threadId);
 
-    const content = lastMessage.content[0].text.value;
-    logger.info(`Nội dung phản hồi từ Assistant: ${content}`);
+        if (!lastMessage) throw new Error('Không tìm thấy phản hồi từ Assistant');
 
-    const response = parseAssistantResponse(content);
+        const content = lastMessage.content[0].text.value;
+        logger.info(`Nội dung phản hồi từ Assistant: ${content}`);
 
-    const promptTokens = runData.usage?.prompt_tokens || 0;
-    const completionTokens = runData.usage?.completion_tokens || 0;
+        const response = parseAssistantResponse(content);
 
-    await dynamoService.addTokenUsage(promptTokens, completionTokens, senderId);
+        const promptTokens = runData.usage?.prompt_tokens || 0;
+        const completionTokens = runData.usage?.completion_tokens || 0;
 
-    return response;
+        await dynamoService.addTokenUsage(promptTokens, completionTokens, senderId);
+
+        return response;
+    });
 }
 module.exports = {
     getThreadId,

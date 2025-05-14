@@ -1,9 +1,21 @@
 
-const { GetCommand, PutCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+const { ScanCommand, GetCommand, PutCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const { dynamoDB } = require("../config/dynamoModels");
 const schemaFields = require("../config/schemaFields");
 const systemPrompt = require("../config/systemPrompt");
 
+// getTableData
+async function getTableData(tableName) {
+    try {
+        const params = {
+            TableName: tableName,
+        };
+        const { Items } = await dynamoDB.send(new ScanCommand(params));
+        return Items;
+    } catch (error) {
+        throw new Error(`Error scanning table ${tableName}: ${error.message}`);
+    }
+}
 // Customers
 // Chuẩn hóa dữ liệu khách hàng
 function normalizeCustomerData(entities, senderId) {
@@ -71,10 +83,10 @@ async function savePrompt(prompt) {
 }
 
 // Lấy prompt
-async function getPrompt() {
+async function getPrompt(id) {
     const params = {
         TableName: "Prompts",
-        Key: { id: "current_prompt" },
+        Key: { id: id },
     };
     const { Item } = await dynamoDB.send(new GetCommand(params));
     return (
@@ -153,6 +165,7 @@ async function addTokenUsage(promptTokens, completionTokens, senderId) {
 }
 
 module.exports = {
+    getTableData,
     saveCustomerInfo,
     getCustomerInfo,
     deleteCustomerInfo,

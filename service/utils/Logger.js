@@ -3,7 +3,9 @@ const winston = require('winston');
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
-    winston.format.timestamp(),
+    winston.format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss' // 👉 định dạng thời gian tùy chỉnh
+    }),
     winston.format.json()
   ),
   transports: [

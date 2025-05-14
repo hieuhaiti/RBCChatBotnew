@@ -1,5 +1,16 @@
 const dynamoService = require('../service/dynamoService');
 
+// Table
+async function getTableData(req, res) {
+    try {
+        const { tableName } = req.params;
+        const data = await dynamoService.getTableData(tableName);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 // Customers
 // Lưu thông tin khách hàng
 async function saveCustomer(req, res) {
@@ -82,7 +93,8 @@ async function saveFAQ(req, res) {
 // Lấy FAQ
 async function getFAQ(req, res) {
     try {
-        const faqs = await dynamoService.getFAQ();
+        const { question } = req.query;
+        const faqs = await dynamoService.getFAQ(question);
         res.status(200).json(faqs);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -123,6 +135,7 @@ async function addTokenUsage(req, res) {
 }
 
 module.exports = {
+    getTableData,
     saveCustomer,
     getCustomer,
     deleteCustomer,
