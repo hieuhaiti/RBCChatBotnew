@@ -137,7 +137,7 @@ async function pollRunStatus(threadId, runId) {
                 timeout: timeout,
             });
 
-            logger.info(`Kiểm tra trạng thái run ${runId}, lần ${attempts}`);
+            logger.info(`Kiểm tra trạng thái run ${runId}, lần ${attempts} : ${response.data.status}`);
 
             const status = response.data.status;
             if (['completed', 'failed', 'cancelled', 'expired'].includes(status)) {
