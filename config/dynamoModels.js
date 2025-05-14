@@ -1,7 +1,7 @@
 const { CreateTableCommand, } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, } = require('@aws-sdk/lib-dynamodb');
 const dbConnection = require("./db");
-const logger = require("../service/ultils/Logger");
+const logger = require("../service/utils/Logger");
 
 const dynamoDB = DynamoDBDocumentClient.from(dbConnection);
 

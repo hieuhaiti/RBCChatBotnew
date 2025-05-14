@@ -2,10 +2,6 @@ const express = require('express');
 const router = express.Router();
 const dynamoController = require('../controller/dynamoController');
 
-// echo
-router.get('/', (req, res) => {
-    res.send('DynamoDB API');
-});
 // Customers
 // Lưu thông tin khách hàng
 router.post('/customers', dynamoController.saveCustomer);
@@ -32,7 +28,7 @@ router.delete('/faqs/:faqId', dynamoController.deleteFAQ);
 
 // TokenUsage
 // Lấy token usage
-router.get('/token-usage', dynamoController.getTokenUsage);
+router.get('/token-usage/:token_id', dynamoController.getTokenUsage);
 // Thêm token usage
 router.post('/token-usage', dynamoController.addTokenUsage);
 
