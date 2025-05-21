@@ -16,7 +16,6 @@ async function verifyWebhook(req, res) {
         }
     }
 }
-
 // Handle incoming messages
 async function handleFacebookMessage(req, res) {
     try {
@@ -25,22 +24,24 @@ async function handleFacebookMessage(req, res) {
         if (object !== 'page') {
             return res.sendStatus(404);
         }
-
         const webhookEvent = entry[0].messaging[0];
         const senderId = webhookEvent.sender.id;
         const message = webhookEvent.message.text;
         const timestamp = webhookEvent.timestamp;
-        if (webhookEvent.message && message) {
-            logger.info(`Tin nhắn từ ${senderId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}: ${message}`);
-            const response = await facebookService.handleCustomerMessage(message, senderId, logger);
-            if (response) {
-                await facebookService.sendMessage(senderId, response.text, [], logger, 5000);
-            } else {
-                await facebookService.sendMessage(senderId, "Xin lỗi, tôi không hiểu câu hỏi của bạn.", [], logger, 5000);
-            }
-        }
+        const messageId = webhookEvent.message.mid;
 
-        res.sendStatus(200);
+        if (webhookEvent.message && message) {
+            logger.info(`🟡 Tin nhắn ${messageId} từ ${senderId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}: ${message}`);
+            await facebookService.handleCustomerMessage(senderId, message)
+                .then(() => {
+                    logger.info(`🟢 Đã gửi phản hồi đến ${senderId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}`);
+                    return res.status(200);
+                })
+                .catch((error) => {
+                    logger.error(`🔴 Lỗi gửi phản hồi đến ${senderId}: ${error.message}`);
+                    return res.status(500);
+                });
+        }
     }
     catch (error) {
         res.status(500).json({ error: error.message });

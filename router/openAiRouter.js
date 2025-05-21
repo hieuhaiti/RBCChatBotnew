@@ -26,7 +26,7 @@ const openAiController = require('../controller/openAiController');
  *       200:
  *         description: Trả về thread ID
  */
-router.get('/thread/:senderId', openAiController.getThreadId);
+// router.get('/thread/:senderId', openAiController.getThreadId);
 // get assistant response
 /**
  * @swagger
@@ -56,6 +56,6 @@ router.get('/thread/:senderId', openAiController.getThreadId);
  *         description: Phản hồi từ Assistant
  */
 
-router.post('/thread/:threadId', openAiController.getAssistantResponse);
+// router.post('/thread/:threadId', openAiController.getAssistantResponse);
 
 module.exports = router;
