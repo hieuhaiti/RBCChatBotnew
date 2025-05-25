@@ -1,136 +1,115 @@
+// routes/rbcRouter.js
 const express = require('express');
 const router = express.Router();
-const dynamoController = require('../controller/dynamoController');
+const controller = require('../controller/dynamoController');
+
 /**
  * @swagger
  * tags:
- *   - name: DynamoDB
- *     description: API thao tác với các bảng trong DynamoDB
- */
-/**
- * @swagger
- * /table/{tableName}:
- *   get:
- *     tags: [DynamoDB]
- *     summary: Lấy dữ liệu từ bảng DynamoDB
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *         description: Tên bảng DynamoDB cần truy xuất
- *     responses:
- *       200:
- *         description: Dữ liệu từ bảng
+ *   - name: DynamoRBC
+ *     description: API thao tác với DynamoDB (RBC tables [UsersRBC, SubscriptionsRBC, PagesRBC, AssistantsRBC, CustomersRBC, TokenUsageRBC, FAQsRBC])
  */
 
 /**
  * @swagger
- * /customers/{senderId}:
+ * /dynamo/{table}/{id}:
  *   get:
- *     tags: [DynamoDB]
- *     summary: Lấy thông tin khách hàng
+ *     tags: [DynamoRBC]
+ *     summary: Lấy một item theo ID
  *     parameters:
  *       - in: path
- *         name: senderId
+ *         name: table
  *         required: true
  *         schema:
  *           type: string
- *         description: ID của khách hàng
+ *         description: Tên bảng
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Giá trị của khóa chính
  *     responses:
  *       200:
- *         description: Thông tin khách hàng
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   example: "9668085513282853"
- *                 name:
- *                   type: string
- *                   example: "Duy Bùi"
- *                 phone:
- *                   type: string
- *                   example: ""
- *                 area:
- *                   type: string
- *                   example: "Hà Nội"
- *                 budget:
- *                   type: number
- *                   example: 0
- *                 project:
- *                   type: string
- *                   example: "nhà ở"
- *                 style:
- *                   type: string
- *                   example: "hiện đại"
- *                 threadId:
- *                   type: string
- *                   example: "thread_abc123"
- *                 lastInteraction:
- *                   type: string
- *                   format: date-time
+ *         description: Trả về item tương ứng
+ *       404:
+ *         description: Không tìm thấy
  */
 
 /**
  * @swagger
- * /customers:
+ * /dynamo/{table}:
  *   post:
- *     tags: [DynamoDB]
- *     summary: Lưu thông tin khách hàng
+ *     tags: [DynamoRBC]
+ *     summary: Tạo hoặc cập nhật một item
+ *     parameters:
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tên bảng
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Customer'
+ *             type: object
+ *             additionalProperties: true
  *     responses:
  *       200:
- *         description: Đã lưu
+ *         description: Item đã được tạo hoặc cập nhật
  */
 
 /**
  * @swagger
- * /customers/{senderId}:
+ * /dynamo/{table}:
  *   delete:
- *     tags: [DynamoDB]
- *     summary: Xóa khách hàng
+ *     tags: [DynamoRBC]
+ *     summary: Xóa một item theo khóa
  *     parameters:
  *       - in: path
- *         name: senderId
+ *         name: table
  *         required: true
  *         schema:
  *           type: string
- *         description: ID khách hàng
+ *         description: Tên bảng
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Key dùng để xóa item
  *     responses:
  *       200:
- *         description: Đã xóa
+ *         description: Đã xóa thành công
  */
 
 /**
  * @swagger
- * /prompts:
+ * /dynamo/scan/{table}:
  *   get:
- *     tags: [DynamoDB]
- *     summary: Lấy prompt hiện tại
+ *     tags: [DynamoRBC]
+ *     summary: Quét toàn bộ bảng DynamoDB
+ *     parameters:
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tên bảng cần quét
  *     responses:
  *       200:
- *         description: Prompt hiện tại
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 prompt:
- *                   type: string
- *                   example: "điệu bộ giống con người nhiều"
- *
+ *         description: Danh sách item trong bảng
+ */
+
+/**
+ * @swagger
+ * /dynamo/query:
  *   post:
- *     tags: [DynamoDB]
- *     summary: Lưu prompt mới
+ *     tags: [DynamoRBC]
+ *     summary: Truy vấn theo chỉ mục phụ (GSI)
  *     requestBody:
  *       required: true
  *       content:
@@ -138,153 +117,38 @@ const dynamoController = require('../controller/dynamoController');
  *           schema:
  *             type: object
  *             properties:
- *               prompt:
+ *               tableName:
+ *                 type: string
+ *               indexName:
+ *                 type: string
+ *               keyName:
+ *                 type: string
+ *               keyValue:
+ *                 type: string
+ *               rangeKeyName:
+ *                 type: string
+ *               rangeKeyValue:
  *                 type: string
  *     responses:
  *       200:
- *         description: Đã lưu
- *
- *   delete:
- *     tags: [DynamoDB]
- *     summary: Xóa prompt hiện tại
- *     responses:
- *       200:
- *         description: Đã xóa
+ *         description: Kết quả truy vấn
  */
 
-/**
- * @swagger
- * /faqs:
- *   get:
- *     tags: [DynamoDB]
- *     summary: Lấy danh sách câu hỏi thường gặp
- *     responses:
- *       200:
- *         description: Danh sách FAQ
- *
- *   post:
- *     tags: [DynamoDB]
- *     summary: Lưu một FAQ
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               question:
- *                 type: string
- *               response_text:
- *                 type: string
- *               quick_replies:
- *                 type: array
- *                 items:
- *                   type: object
- *               entities:
- *                 type: object
- *     responses:
- *       200:
- *         description: Đã lưu
- */
+// Lấy 1 item theo khóa chính (GET /:table/:id)
+router.get('/:table/:id', controller.getItem);
 
-/**
- * @swagger
- * /faqs/{faqId}:
- *   delete:
- *     tags: [DynamoDB]
- *     summary: Xóa một FAQ
- *     parameters:
- *       - in: path
- *         name: faqId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Đã xóa
- */
+// Thêm hoặc cập nhật item (POST /:table)
+router.post('/:table', controller.putItem);
 
-/**
- * @swagger
- * /token-usage:
- *   post:
- *     tags: [DynamoDB]
- *     summary: Ghi log token usage
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               senderId:
- *                 type: string
- *               promptTokens:
- *                 type: number
- *               completionTokens:
- *                 type: number
- *     responses:
- *       200:
- *         description: Đã ghi log
- *
- * /token-usage/{token_id}:
- *   get:
- *     tags: [DynamoDB]
- *     summary: Lấy token usage theo ID
- *     parameters:
- *       - in: path
- *         name: token_id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Token usage
- */
+// Xóa item theo key (DELETE /:table)
+// Body truyền key cần xóa (ví dụ: { "userID": "123" })
+router.delete('/:table', controller.deleteItem);
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Customer:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           example: "9668085513282853"
- *         name:
- *           type: string
- *           example: "Duy Bùi"
- *         phone:
- *           type: string
- *         area:
- *           type: string
- *           example: "Hà Nội"
- *         budget:
- *           type: number
- *           example: 0
- *         project:
- *           type: string
- *         style:
- *           type: string
- *         threadId:
- *           type: string
- *         lastInteraction:
- *           type: string
- *           format: date-time
- */
+// Quét tất cả item trong bảng (GET /scan/:table)
+router.get('/scan/:table', controller.scanTable);
 
-router.get('/table/:tableName', dynamoController.getTableData);
-router.get('/customers/:senderId', dynamoController.getCustomer);
-router.post('/customers', dynamoController.saveCustomer);
-router.delete('/customers/:senderId', dynamoController.deleteCustomer);
-router.get('/prompts', dynamoController.getPrompt);
-router.post('/prompts', dynamoController.savePrompt);
-router.delete('/prompts/:promptId', dynamoController.deletePrompt);
-router.get('/faqs', dynamoController.getFAQ); // question query (biệt thự)
-router.post('/faqs', dynamoController.saveFAQ); //faq body
-router.delete('/faqs/:faqId', dynamoController.deleteFAQ);
-router.get('/token-usage/:token_id', dynamoController.getTokenUsage);
-// const { promptTokens, completionTokens, senderId } = req.body;
-router.post('/token-usage', dynamoController.addTokenUsage);
+// Truy vấn theo GSI (POST /query)
+// Body ví dụ: { "tableName": "...", "indexName": "...", "keyName": "...", "keyValue": "...", "rangeKeyName": "...", "rangeKeyValue": "..." }
+router.post('/query', controller.queryByIndex);
+
 module.exports = router;
