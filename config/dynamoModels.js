@@ -22,7 +22,7 @@ async function setupTables() {
                 ReadCapacityUnits: 5,
                 WriteCapacityUnits: 5,
             },
-            GlobalSeczondaryIndexes: [
+            GlobalSecondaryIndexes: [
                 {
                     IndexName: "EmailIndex",
                     KeySchema: [
@@ -98,9 +98,6 @@ async function setupTables() {
             AttributeDefinitions: [
                 { AttributeName: "subscriptionID", AttributeType: "S" },
                 { AttributeName: "userID", AttributeType: "S" },
-                { AttributeName: "tier", AttributeType: "S" },
-                { AttributeName: "startDate", AttributeType: "S" },
-                { AttributeName: "endDate", AttributeType: "S" },
             ],
             ProvisionedThroughput: {
                 ReadCapacityUnits: 5,
@@ -147,8 +144,8 @@ async function setupTables() {
                         ReadCapacityUnits: 5,
                         WriteCapacityUnits: 5,
                     },
-                },
-                           ],
+                }
+            ],
         },
         {
             TableName: "AssistantsRBC",
