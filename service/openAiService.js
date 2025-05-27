@@ -1,6 +1,7 @@
 const axios = require("axios");
 const dynamoService = require("./dynamoService");
 const logger = require("../service/utils/Logger");
+const uuid = require("uuid").v4;
 
 const threadLocks = new Set();
 
@@ -11,14 +12,37 @@ const HEADERS = {
 };
 
 const OPENAI_URL = process.env.OPENAI_URL;
+const INSTRUCTION_SYSTEM = process.env.INSTRUCTION_SYSTEM;
 
-async function getOrCreateThread(senderId) {
-    const customer = await dynamoService.getCustomerInfo(senderId);
-    if (customer.threadId) return customer.threadId;
+async function getThread(senderId, pageId) {
+    const customers = await dynamoService.queryByIndex(
+        "CustomersRBC",
+        "SenderIndex",
+        "customerID",
+        senderId,
+        "pageID",
+        pageId
+    );
+    const customer = customers?.[0]; // lấy phần tử đầu tiên (nếu có)
+    if (customer?.threadId) {
+        return customer.threadId;
+    }
+    return null;
+}
 
+async function createdThread() {
     const { data } = await axios.post(`${OPENAI_URL}/threads`, {}, { headers: HEADERS });
-    await dynamoService.saveCustomerInfo({ ...customer, threadId: data.id }, senderId);
     return data.id;
+}
+
+async function createdAssistant() {
+    const response = await axios.post(`${OPENAI_URL}/assistants`, {
+        model: 'gpt-4o',
+        instructions: INSTRUCTION_SYSTEM,
+        description: 'Automatically created assistant for page interactions.'
+    }, { headers: HEADERS });
+
+    return response.data.id;
 }
 
 async function lockThread(threadId, fn) {
@@ -31,7 +55,7 @@ async function lockThread(threadId, fn) {
     }
 }
 
-async function sendMessage(threadId, prompt) {
+async function sendMessage(assistantId, threadId, prompt) {
     await axios.post(
         `${OPENAI_URL}/threads/${threadId}/messages`,
         { role: 'user', content: prompt },
@@ -39,7 +63,7 @@ async function sendMessage(threadId, prompt) {
     );
     const { data } = await axios.post(
         `${OPENAI_URL}/threads/${threadId}/runs`,
-        { assistant_id: process.env.ASSISTANT_ID },
+        { assistant_id: assistantId },
         { headers: HEADERS }
     );
     return data.id;
@@ -84,10 +108,20 @@ function parseResponse(content) {
     }
 }
 
-async function getAssistantReply(senderId, prompt) {
-    const threadId = await getOrCreateThread(senderId);
+async function getAssistantReply(senderId, pageId, prompt) {
+    const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
+    let assistantId = page.assistantId;
+    if (!assistantId || assistantId === '') {
+        assistantId = await createdAssistant()
+        await dynamoService.putItem("PagesRBC", { ...page, assistantId: assistantId, updateAt: new Date().toISOString() });
+    }
+    let threadId = await getThread(senderId, pageId);
+    if (!threadId || threadId === '') {
+        threadId = await createdThread()
+        await dynamoService.putItem("CustomersRBC", { ...customer, threadId: threadId });
+    }
     return await lockThread(threadId, async () => {
-        const runId = await sendMessage(threadId, prompt);
+        const runId = await sendMessage(assistantId, threadId, prompt);
         const runData = await waitForRunCompletion(threadId, runId);
         if (runData.status !== 'completed') {
             throw new Error(`Run failed with status: ${runData.status}`);
@@ -95,12 +129,21 @@ async function getAssistantReply(senderId, prompt) {
         const lastMessage = await getLastAssistantMessage(threadId);
         const content = lastMessage.content[0].text.value;
         const response = parseResponse(content);
-        await dynamoService.addTokenUsage(runData.usage?.prompt_tokens || 0, runData.usage?.completion_tokens || 0, senderId);
+        await dynamoService.putItem("TokenUsageRBC", {
+            usageID: uuid(),
+            timestamp: new Date().toISOString(),
+            pageID: pageId,
+            customerID: senderId,
+            prompt_tokens: runData.usage.prompt_tokens,
+            tokensUsed: runData.usage.total_tokens,
+        });
         return response;
     });
 }
 
 module.exports = {
-    getOrCreateThread,
+    getThread,
+    createdThread,
+    createdAssistant,
     getAssistantReply,
 };

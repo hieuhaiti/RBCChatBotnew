@@ -15,7 +15,6 @@ async function setupTables() {
             ],
             AttributeDefinitions: [
                 { AttributeName: "userID", AttributeType: "S" },
-                { AttributeName: "email", AttributeType: "S" },
                 { AttributeName: "subscriptionID", AttributeType: "S" },
             ],
             ProvisionedThroughput: {
@@ -23,17 +22,6 @@ async function setupTables() {
                 WriteCapacityUnits: 5,
             },
             GlobalSecondaryIndexes: [
-                {
-                    IndexName: "EmailIndex",
-                    KeySchema: [
-                        { AttributeName: "email", KeyType: "HASH" },
-                    ],
-                    Projection: { ProjectionType: "ALL" },
-                    ProvisionedThroughput: {
-                        ReadCapacityUnits: 5,
-                        WriteCapacityUnits: 5,
-                    },
-                },
                 {
                     IndexName: "SubscriptionIndex",
                     KeySchema: [
@@ -56,8 +44,6 @@ async function setupTables() {
             AttributeDefinitions: [
                 { AttributeName: "customerID", AttributeType: "S" },
                 { AttributeName: "pageID", AttributeType: "S" },
-                { AttributeName: "senderID", AttributeType: "S" },
-                { AttributeName: "lastInteraction", AttributeType: "S" },
             ],
             ProvisionedThroughput: {
                 ReadCapacityUnits: 5,
@@ -67,7 +53,7 @@ async function setupTables() {
                 {
                     IndexName: "SenderIndex",
                     KeySchema: [
-                        { AttributeName: "senderID", KeyType: "HASH" },
+                        { AttributeName: "customerID", KeyType: "HASH" },
                         { AttributeName: "pageID", KeyType: "RANGE" },
                     ],
                     Projection: { ProjectionType: "ALL" },
@@ -76,18 +62,34 @@ async function setupTables() {
                         WriteCapacityUnits: 5,
                     },
                 },
+            ],
+        },
+        {
+            TableName: "PagesRBC",
+            KeySchema: [
+                { AttributeName: "pageID", KeyType: "HASH" },
+            ],
+            AttributeDefinitions: [
+                { AttributeName: "pageID", AttributeType: "S" },
+                { AttributeName: "userID", AttributeType: "S" },
+
+            ],
+            ProvisionedThroughput: {
+                ReadCapacityUnits: 5,
+                WriteCapacityUnits: 5,
+            },
+            GlobalSecondaryIndexes: [
                 {
-                    IndexName: "PageInteractionIndex",
+                    IndexName: "UserIndex",
                     KeySchema: [
-                        { AttributeName: "pageID", KeyType: "HASH" },
-                        { AttributeName: "lastInteraction", KeyType: "RANGE" },
+                        { AttributeName: "userID", KeyType: "HASH" },
                     ],
                     Projection: { ProjectionType: "ALL" },
                     ProvisionedThroughput: {
                         ReadCapacityUnits: 5,
                         WriteCapacityUnits: 5,
                     },
-                },
+                }
             ],
         },
         {
@@ -119,86 +121,16 @@ async function setupTables() {
             ],
         },
         {
-            TableName: "PagesRBC",
-            KeySchema: [
-                { AttributeName: "pageID", KeyType: "HASH" },
-                { AttributeName: "userID", KeyType: "RANGE" },
-            ],
-            AttributeDefinitions: [
-                { AttributeName: "pageID", AttributeType: "S" },
-                { AttributeName: "userID", AttributeType: "S" },
-
-            ],
-            ProvisionedThroughput: {
-                ReadCapacityUnits: 5,
-                WriteCapacityUnits: 5,
-            },
-            GlobalSecondaryIndexes: [
-                {
-                    IndexName: "UserIndex",
-                    KeySchema: [
-                        { AttributeName: "userID", KeyType: "HASH" },
-                    ],
-                    Projection: { ProjectionType: "ALL" },
-                    ProvisionedThroughput: {
-                        ReadCapacityUnits: 5,
-                        WriteCapacityUnits: 5,
-                    },
-                }
-            ],
-        },
-        {
-            TableName: "AssistantsRBC",
-            KeySchema: [
-                { AttributeName: "assistantID", KeyType: "HASH" },
-                { AttributeName: "userID", KeyType: "RANGE" },
-            ],
-            AttributeDefinitions: [
-                { AttributeName: "assistantID", AttributeType: "S" },
-                { AttributeName: "userID", AttributeType: "S" },
-                { AttributeName: "pageID", AttributeType: "S" },
-            ],
-            ProvisionedThroughput: {
-                ReadCapacityUnits: 5,
-                WriteCapacityUnits: 5,
-            },
-            GlobalSecondaryIndexes: [
-                {
-                    IndexName: "UserIndex",
-                    KeySchema: [
-                        { AttributeName: "userID", KeyType: "HASH" },
-                    ],
-                    Projection: { ProjectionType: "ALL" },
-                    ProvisionedThroughput: {
-                        ReadCapacityUnits: 5,
-                        WriteCapacityUnits: 5,
-                    },
-                },
-                {
-                    IndexName: "PageIndex",
-                    KeySchema: [
-                        { AttributeName: "pageID", KeyType: "HASH" },
-                    ],
-                    Projection: { ProjectionType: "ALL" },
-                    ProvisionedThroughput: {
-                        ReadCapacityUnits: 5,
-                        WriteCapacityUnits: 5,
-                    },
-                },
-            ],
-        },
-
-        {
             TableName: "TokenUsageRBC",
             KeySchema: [
-                { AttributeName: "usageID", KeyType: "HASH" },
-                { AttributeName: "userID", KeyType: "RANGE" },
+                { AttributeName: "usageID", KeyType: "HASH" }, // UUID, khóa phân vùng
+                { AttributeName: "timestamp", KeyType: "RANGE" }, // Sắp xếp theo thời gian
             ],
             AttributeDefinitions: [
-                { AttributeName: "usageID", AttributeType: "S" },
-                { AttributeName: "userID", AttributeType: "S" },
-                { AttributeName: "subscriptionID", AttributeType: "S" },
-                { AttributeName: "timestamp", AttributeType: "S" },
+                { AttributeName: "usageID", AttributeType: "S" }, // UUID
+                { AttributeName: "timestamp", AttributeType: "S" }, // ISO 8601, ví dụ: "2025-05-27T10:00:00Z"
+                { AttributeName: "customerID", AttributeType: "S" },
+                { AttributeName: "pageID", AttributeType: "S" },
             ],
             ProvisionedThroughput: {
                 ReadCapacityUnits: 5,
@@ -206,23 +138,15 @@ async function setupTables() {
             },
             GlobalSecondaryIndexes: [
                 {
-                    IndexName: "UserTimestampIndex",
+                    IndexName: "CustomerPageIndex",
                     KeySchema: [
-                        { AttributeName: "userID", KeyType: "HASH" },
-                        { AttributeName: "timestamp", KeyType: "RANGE" },
+                        { AttributeName: "customerID", KeyType: "HASH" },
+                        { AttributeName: "pageID", KeyType: "RANGE" },
                     ],
-                    Projection: { ProjectionType: "ALL" },
-                    ProvisionedThroughput: {
-                        ReadCapacityUnits: 5,
-                        WriteCapacityUnits: 5,
+                    Projection: {
+                        ProjectionType: "INCLUDE",
+                        NonKeyAttributes: ["prompt_tokens", "completion_tokens", "timestamp"]
                     },
-                },
-                {
-                    IndexName: "SubscriptionIndex",
-                    KeySchema: [
-                        { AttributeName: "subscriptionID", KeyType: "HASH" },
-                    ],
-                    Projection: { ProjectionType: "ALL" },
                     ProvisionedThroughput: {
                         ReadCapacityUnits: 5,
                         WriteCapacityUnits: 5,

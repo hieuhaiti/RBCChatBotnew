@@ -3,7 +3,7 @@ const {
     GetCommand,
     PutCommand,
     DeleteCommand,
-    QueryCommand
+    QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
 const { dynamoDB } = require("../config/dynamoModels");
@@ -42,6 +42,7 @@ async function putItem(tableName, item) {
     await dynamoDB.send(new PutCommand(params));
     return item;
 }
+
 
 /**
  * Xóa một item theo khóa chính
