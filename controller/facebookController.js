@@ -1,4 +1,5 @@
 const facebookService = require('../service/facebookService');
+const dynamoService = require('../service/dynamoService');
 const logger = require("../service/utils/Logger");
 const dayjs = require('dayjs');
 
@@ -37,6 +38,25 @@ async function handleFacebookMessage(req, res) {
         if (webhookEvent.message && message) {
             logger.info(`🟡 Tin nhắn ${messageId} từ ${senderId} tới ${pageId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}: ${message}`);
 
+            // Kiểm tra khách hàng trong CustomersRBC
+            const result = await dynamoService.getItem("CustomersRBC", { customerID: senderId, pageID: pageId });
+
+            if (!result) {
+                // Nếu khách hàng không tồn tại, tạo mới
+                const customerData = {
+                    customerID: senderId,
+                    pageID: pageId,
+                    createAt: new Date().toISOString(),
+                    updateAt: new Date().toISOString(),
+                    threadId: '',
+                    phone: '',
+                    name: '',
+                    attribute: {},
+                };
+                await dynamoService.putItem("CustomersRBC", customerData);
+                logger.info(`🟢 Tạo mới khách hàng ${senderId} trên page ${pageId}`);
+            }
+
             // Khởi tạo hoặc cập nhật messageStore cho senderId
             if (!messageStore[senderId]) {
                 messageStore[senderId] = { messages: [], timer: null, lastTimestamp: timestamp };
@@ -68,7 +88,7 @@ async function handleFacebookMessage(req, res) {
         }
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        logger.error(`🔴 Lỗi trong handleFacebookMessage: ${error.message}`);
     }
 }
 

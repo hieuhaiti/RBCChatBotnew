@@ -14,25 +14,26 @@ const HEADERS = {
 const OPENAI_URL = process.env.OPENAI_URL;
 const INSTRUCTION_SYSTEM = process.env.INSTRUCTION_SYSTEM;
 
-async function getThread(senderId, pageId) {
-    const customers = await dynamoService.queryByIndex(
-        "CustomersRBC",
-        "SenderIndex",
-        "customerID",
-        senderId,
-        "pageID",
-        pageId
-    );
-    const customer = customers?.[0]; // lấy phần tử đầu tiên (nếu có)
-    if (customer?.threadId) {
-        return customer.threadId;
-    }
-    return null;
-}
-
 async function createdThread() {
     const { data } = await axios.post(`${OPENAI_URL}/threads`, {}, { headers: HEADERS });
     return data.id;
+}
+
+async function getMessages(threadId) {
+    const { data } = await axios.get(`${OPENAI_URL}/threads/${threadId}/messages`, { headers: HEADERS });
+    return data;
+}
+
+async function getAssistant(pageId) {
+    const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
+    if (!page || !page.assistantId) {
+        throw new Error(`No assistant found for page ${pageId}`);
+    }
+    const response = await axios.get(`${OPENAI_URL}/assistants/${page.assistantId}`, { headers: HEADERS });
+    if (response.status !== 200) {
+        throw new Error(`Failed to fetch assistant: ${response.statusText}`);
+    }
+    return response.data;
 }
 
 async function createdAssistant() {
@@ -42,6 +43,16 @@ async function createdAssistant() {
         description: 'Automatically created assistant for page interactions.'
     }, { headers: HEADERS });
 
+    return response.data.id;
+}
+
+async function updateAssistant(assistantId, instructions) {
+    if (!assistantId) {
+        throw new Error("ASSISTANT_ID is not set in environment variables");
+    }
+    const response = await axios.patch(`${OPENAI_URL}/assistants/${assistantId}`, {
+        instructions: instructions,
+    }, { headers: HEADERS });
     return response.data.id;
 }
 
@@ -108,18 +119,21 @@ function parseResponse(content) {
     }
 }
 
-async function getAssistantReply(senderId, pageId, prompt) {
+async function getResponseMessenger(senderId, pageId, prompt) {
     const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
     let assistantId = page.assistantId;
     if (!assistantId || assistantId === '') {
         assistantId = await createdAssistant()
         await dynamoService.putItem("PagesRBC", { ...page, assistantId: assistantId, updateAt: new Date().toISOString() });
     }
-    let threadId = await getThread(senderId, pageId);
+    let customer = await dynamoService.getItem("CustomersRBC", { customerID: senderId, pageID: pageId });
+
+    let threadId = customer?.threadId
     if (!threadId || threadId === '') {
         threadId = await createdThread()
         await dynamoService.putItem("CustomersRBC", { ...customer, threadId: threadId });
     }
+    logger.info(`dùng assistantId: ${assistantId}, threadId: ${threadId} cho senderId: ${senderId}`);
     return await lockThread(threadId, async () => {
         const runId = await sendMessage(assistantId, threadId, prompt);
         const runData = await waitForRunCompletion(threadId, runId);
@@ -141,9 +155,27 @@ async function getAssistantReply(senderId, pageId, prompt) {
     });
 }
 
+async function getAssistantReply(assistantId, threadId, message) {
+    if (threadId === null)
+        threadId = await createdThread();
+    return await lockThread(threadId, async () => {
+        const runId = await sendMessage(assistantId, threadId, message);
+        const runData = await waitForRunCompletion(threadId, runId);
+        if (runData.status !== 'completed') {
+            throw new Error(`Run failed with status: ${runData.status}`);
+        }
+        const lastMessage = await getLastAssistantMessage(threadId);
+        const content = lastMessage.content[0].text.value;
+        const response = parseResponse(content);
+        return response;
+    });
+}
 module.exports = {
-    getThread,
     createdThread,
+    getMessages,
+    getAssistant,
     createdAssistant,
+    updateAssistant,
+    getResponseMessenger,
     getAssistantReply,
 };

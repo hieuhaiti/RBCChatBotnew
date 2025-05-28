@@ -6,22 +6,18 @@ const logger = require('./utils/Logger');
 // Send message to Facebook
 async function sendMessage(pageId, recipientId, text) {
     try {
-        console.log(`Gửi tin nhắn đến Facebook: ${recipientId} - ${text}`);
         const messageData = {
             recipient: { id: recipientId },
             messaging_type: 'RESPONSE',
             message: { text },
         };
         const result = await dynamoService.getItem("PagesRBC", { pageID: pageId });
-        console.log(`Lấy thông tin trang Facebook: ${JSON.stringify(result)}`);
 
         const pageAccessToken = result.accessToken
         await axios.post(`${process.env.GRAPH_FACEBOOK_URL}/me/messages`, messageData, {
             params: { access_token: pageAccessToken },
             headers: { 'Content-Type': 'application/json' },
         });
-        console.log(`Tin nhắn đã gửi đến Facebook: ${recipientId} - ${text}`);
-
         logger.info(`✅ Tin nhắn đã gửi đến ${recipientId}: ${text}`);
         return true;
     } catch (error) {
@@ -56,7 +52,7 @@ async function sendMessage(pageId, recipientId, text) {
 async function handleCustomerMessage(senderId, pageId, message) {
     try {
         // Gửi tin nhắn đến OpenAI
-        const response = await openAiService.getAssistantReply(senderId, pageId, message);
+        const response = await openAiService.getResponseMessenger(senderId, pageId, message);
         // Gửi phản hồi đến khách hàng
         await sendMessage(pageId, senderId, response.text);
     } catch (error) {
