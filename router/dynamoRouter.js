@@ -134,6 +134,13 @@ const controller = require('../controller/dynamoController');
  *         description: Kết quả truy vấn
  */
 
+// Truy vấn theo GSI (POST /query)
+// Body ví dụ: { "tableName": "...", "indexName": "...", "keyName": "...", "keyValue": "...", "rangeKeyName": "...", "rangeKeyValue": "..." }
+router.post('/query', controller.queryByIndex);
+
+// Quét tất cả item trong bảng (GET /scan/:table)
+router.get('/scan/:table', controller.scanTable);
+
 // Lấy 1 item theo khóa chính (GET /:table/:id)
 router.get('/:table/:id', controller.getItem);
 
@@ -144,11 +151,5 @@ router.post('/:table', controller.putItem);
 // Body truyền key cần xóa (ví dụ: { "userID": "123" })
 router.delete('/:table', controller.deleteItem);
 
-// Quét tất cả item trong bảng (GET /scan/:table)
-router.get('/scan/:table', controller.scanTable);
-
-// Truy vấn theo GSI (POST /query)
-// Body ví dụ: { "tableName": "...", "indexName": "...", "keyName": "...", "keyValue": "...", "rangeKeyName": "...", "rangeKeyValue": "..." }
-router.post('/query', controller.queryByIndex);
 
 module.exports = router;

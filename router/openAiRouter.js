@@ -94,6 +94,88 @@ router.get('/messages/:threadId', openAiController.getMessages);
 
 /**
  * @swagger
+ * /openai/threads/{threadId}/sendMessage:
+ *   post:
+ *     summary: Send a message to a thread
+ *     tags: [OpenAI]
+ *     parameters:
+ *       - in: path
+ *         name: threadId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the thread
+ *       - in: path
+ *         name: assistantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the assistant
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 description: The role of the sender (e.g., "user" or "assistant")
+ *                 example: "user"
+ *               prompt:
+ *                 type: string
+ *                 description: The message content
+ *                 example: "What is the weather today?"
+ *             required:
+ *               - role
+ *               - prompt
+ *     responses:
+ *       200:
+ *         description: Message sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 text:
+ *                   type: string
+ *                   description: The assistant's reply
+ *                   example: "The weather is sunny today."
+ *                 quick_replies:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Suggested quick replies
+ *                   example: ["Tell me more", "Thank you"]
+ *                 entities:
+ *                   type: object
+ *                   description: Extracted entities
+ *                   example: {}
+ *       400:
+ *         description: Missing required parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
+ */
+router.post('/threads/:threadId/sendMessage/', openAiController.sendMessageToThread);
+
+/**
+ * @swagger
  * /openai/assistants/{pageId}:
  *   get:
  *     summary: Get assistant by page ID

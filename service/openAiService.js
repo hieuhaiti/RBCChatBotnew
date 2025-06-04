@@ -66,12 +66,17 @@ async function lockThread(threadId, fn) {
     }
 }
 
-async function sendMessage(assistantId, threadId, prompt) {
-    await axios.post(
+async function sendMessage(threadId, role, prompt) {
+    const { data } = await axios.post(
         `${OPENAI_URL}/threads/${threadId}/messages`,
-        { role: 'user', content: prompt },
+        { role: role, content: prompt },
         { headers: HEADERS, timeout: Number(process.env.API_TIMEOUT_MS || 10000) }
     );
+
+    return data.id;
+}
+
+async function runsThread(threadId, assistantId) {
     const { data } = await axios.post(
         `${OPENAI_URL}/threads/${threadId}/runs`,
         { assistant_id: assistantId },
@@ -79,6 +84,7 @@ async function sendMessage(assistantId, threadId, prompt) {
     );
     return data.id;
 }
+
 
 async function waitForRunCompletion(threadId, runId) {
     const maxAttempts = Number(process.env.POLL_MAX_ATTEMPTS || 10);
@@ -135,7 +141,8 @@ async function getResponseMessenger(senderId, pageId, prompt) {
     }
     logger.info(`dùng assistantId: ${assistantId}, threadId: ${threadId} cho senderId: ${senderId}`);
     return await lockThread(threadId, async () => {
-        const runId = await sendMessage(assistantId, threadId, prompt);
+        await sendMessage(threadId, 'user', prompt);
+        const runId = await runsThread(assistantId, threadId);
         const runData = await waitForRunCompletion(threadId, runId);
         if (runData.status !== 'completed') {
             throw new Error(`Run failed with status: ${runData.status}`);
@@ -159,7 +166,8 @@ async function getAssistantReply(assistantId, threadId, message) {
     if (threadId === null)
         threadId = await createdThread();
     return await lockThread(threadId, async () => {
-        const runId = await sendMessage(assistantId, threadId, message);
+        await sendMessage(threadId, 'user', message);
+        const runId = await runsThread(threadId, assistantId);
         const runData = await waitForRunCompletion(threadId, runId);
         if (runData.status !== 'completed') {
             throw new Error(`Run failed with status: ${runData.status}`);
@@ -173,6 +181,7 @@ async function getAssistantReply(assistantId, threadId, message) {
 module.exports = {
     createdThread,
     getMessages,
+    sendMessage,
     getAssistant,
     createdAssistant,
     updateAssistant,

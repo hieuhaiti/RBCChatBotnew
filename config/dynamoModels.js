@@ -39,7 +39,6 @@ async function setupTables() {
             TableName: "CustomersRBC",
             KeySchema: [
                 { AttributeName: "customerID", KeyType: "HASH" },
-                { AttributeName: "pageID", KeyType: "RANGE" },
             ],
             AttributeDefinitions: [
                 { AttributeName: "customerID", AttributeType: "S" },
@@ -51,7 +50,7 @@ async function setupTables() {
             },
             GlobalSecondaryIndexes: [
                 {
-                    IndexName: "SenderIndex",
+                    IndexName: "PageIndex",
                     KeySchema: [
                         { AttributeName: "customerID", KeyType: "HASH" },
                         { AttributeName: "pageID", KeyType: "RANGE" },
