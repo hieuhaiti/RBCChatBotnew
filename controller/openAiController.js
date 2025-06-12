@@ -26,6 +26,7 @@ async function getMessages(req, res) {
 }
 
 async function sendMessageToThread(req, res) {
+
     const { threadId } = req.params;
     const { role, prompt } = req.body;
 
@@ -33,12 +34,7 @@ async function sendMessageToThread(req, res) {
         if (!threadId || !role || !prompt) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
-
-        await openAiService.sendMessage(threadId, role, prompt);
-        const lastMessage = await openAiService.getLastAssistantMessage(threadId);
-        const content = lastMessage.content[0].text.value;
-        const response = openAiService.parseResponse(content);
-
+        const response = await openAiService.sendMessage(threadId, role, prompt);
         res.status(200).json(response);
     } catch (error) {
         logger.error(`Route error: POST /openai/threads/${threadId}/sendMessage`, error);
@@ -77,7 +73,7 @@ async function updateAssistant(req, res) {
         const updatedId = await openAiService.updateAssistant(assistantId, instructions);
         res.status(200).json({ updatedId });
     } catch (error) {
-        logger.error(`Route error: PATCH /openai/assistants/${assistantId}`, error);
+        logger.error(`Route error: Post /openai/assistants/${assistantId}`, error);
         res.status(500).json({ error: 'Internal server error' });
     }
 }

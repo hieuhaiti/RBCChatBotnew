@@ -105,12 +105,6 @@ router.get('/messages/:threadId', openAiController.getMessages);
  *         schema:
  *           type: string
  *         description: The ID of the thread
- *       - in: path
- *         name: assistantId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the assistant
  *     requestBody:
  *       required: true
  *       content:
@@ -137,20 +131,10 @@ router.get('/messages/:threadId', openAiController.getMessages);
  *             schema:
  *               type: object
  *               properties:
- *                 text:
+ *                 id:
  *                   type: string
- *                   description: The assistant's reply
- *                   example: "The weather is sunny today."
- *                 quick_replies:
- *                   type: array
- *                   items:
- *                     type: string
- *                   description: Suggested quick replies
- *                   example: ["Tell me more", "Thank you"]
- *                 entities:
- *                   type: object
- *                   description: Extracted entities
- *                   example: {}
+ *                   description: The ID of the sent message
+ *                   example: msg_abc123
  *       400:
  *         description: Missing required parameters
  *         content:
@@ -172,11 +156,11 @@ router.get('/messages/:threadId', openAiController.getMessages);
  *                   type: string
  *                   example: Internal server error
  */
-router.post('/threads/:threadId/sendMessage/', openAiController.sendMessageToThread);
+router.post('/threads/:threadId/sendMessage', openAiController.sendMessageToThread);
 
 /**
  * @swagger
- * /openai/assistants/{pageId}:
+ * /openai/assistants/pageId/{pageId}:
  *   get:
  *     summary: Get assistant by page ID
  *     tags: [OpenAI]
@@ -217,7 +201,7 @@ router.post('/threads/:threadId/sendMessage/', openAiController.sendMessageToThr
  *                   type: string
  *                   example: Internal server error
  */
-router.get('/assistants/:pageId', openAiController.getAssistant);
+router.get('/assistants/pageId/:pageId', openAiController.getAssistant);
 
 /**
  * @swagger
@@ -252,8 +236,8 @@ router.post('/assistants', openAiController.createdAssistant);
 
 /**
  * @swagger
- * /openai/assistants/{assistantId}:
- *   patch:
+ * /openai/assistants/assistantId/{assistantId}:
+ *   post:
  *     summary: Update an assistant's instructions
  *     tags: [OpenAI]
  *     parameters:
@@ -299,7 +283,7 @@ router.post('/assistants', openAiController.createdAssistant);
  *                   type: string
  *                   example: Internal server error
  */
-router.patch('/assistants/:assistantId', openAiController.updateAssistant);
+router.post('/assistants/assistantId/:assistantId', openAiController.updateAssistant);
 
 /**
  * @swagger

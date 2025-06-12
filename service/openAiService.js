@@ -50,7 +50,7 @@ async function updateAssistant(assistantId, instructions) {
     if (!assistantId) {
         throw new Error("ASSISTANT_ID is not set in environment variables");
     }
-    const response = await axios.patch(`${OPENAI_URL}/assistants/${assistantId}`, {
+    const response = await axios.post(`${OPENAI_URL}/assistants/${assistantId}`, {
         instructions: instructions,
     }, { headers: HEADERS });
     return response.data.id;
@@ -129,20 +129,19 @@ async function getResponseMessenger(senderId, pageId, prompt) {
     const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
     let assistantId = page.assistantId;
     if (!assistantId || assistantId === '') {
-        assistantId = await createdAssistant()
-        await dynamoService.putItem("PagesRBC", { ...page, assistantId: assistantId, updateAt: new Date().toISOString() });
+        assistantId = await createdAssistant();
+        await dynamoService.putItem("PagesRBC", { ...page, assistantId, updateAt: new Date().toISOString() });
     }
     let customer = await dynamoService.getItem("CustomersRBC", { customerID: senderId, pageID: pageId });
 
-    let threadId = customer?.threadId
+    let threadId = customer?.threadId;
     if (!threadId || threadId === '') {
-        threadId = await createdThread()
-        await dynamoService.putItem("CustomersRBC", { ...customer, threadId: threadId });
+        threadId = await createdThread();
+        await dynamoService.putItem("CustomersRBC", { ...customer, threadId });
     }
-    logger.info(`dùng assistantId: ${assistantId}, threadId: ${threadId} cho senderId: ${senderId}`);
     return await lockThread(threadId, async () => {
         await sendMessage(threadId, 'user', prompt);
-        const runId = await runsThread(assistantId, threadId);
+        const runId = await runsThread(threadId, assistantId);
         const runData = await waitForRunCompletion(threadId, runId);
         if (runData.status !== 'completed') {
             throw new Error(`Run failed with status: ${runData.status}`);
