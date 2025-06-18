@@ -47,6 +47,7 @@ async function getUserNameFromFacebook(senderId) {
         return 'không xác định';
     }
 }
+
 // async function getUserNameFromFacebook(senderId, pageId) {
 //     try {
 //         const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
@@ -65,6 +66,7 @@ async function getUserNameFromFacebook(senderId) {
 //         return 'không xác định';
 //     }
 // }
+
 // handleCustomerMessage
 async function handleCustomerMessage(senderId, pageId, message) {
     try {
@@ -73,7 +75,7 @@ async function handleCustomerMessage(senderId, pageId, message) {
         // Gửi phản hồi đến khách hàng
         await sendMessage(pageId, senderId, response.text);
     } catch (error) {
-        console.error(`Lỗi xử lý tin nhắn khách hàng: ${error.message}`);
+        // console.error(`Lỗi xử lý tin nhắn khách hàng: ${error.message}`);
     }
 }
 
@@ -81,5 +83,5 @@ async function handleCustomerMessage(senderId, pageId, message) {
 module.exports = {
     sendMessage,
     handleCustomerMessage,
-    getUserNameFromFacebook
+    // getUserNameFromFacebook
 };

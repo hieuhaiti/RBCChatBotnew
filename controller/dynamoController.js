@@ -5,7 +5,13 @@ const logger = require("../service/utils/Logger");
 async function getItem(req, res) {
     const { table, id } = req.params;
     try {
-        const item = await dynamoService.getItem(table, { [`${table.slice(0, -3).toLowerCase()}ID`]: id }); // ví dụ "UsersRBC" => userID
+        let key = { [`${table.slice(0, -3).toLowerCase()}ID`]: id };
+        // For FAQsRBC, include assistantID
+        if (table === 'FAQsRBC') {
+            const assistantID = req.query.assistantID || 'asst_S2VCA6HHZRzb7BBGITjAXMod'; // Use query param or default
+            key = { faqID: id, assistantID };
+        }
+        const item = await dynamoService.getItem(table, key);
         if (!item) return res.status(404).json({ error: 'Item not found' });
         res.json(item);
     } catch (error) {
