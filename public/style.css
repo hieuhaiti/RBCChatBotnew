@@ -1,0 +1,324 @@
+/* Reset mặc định để đảm bảo giao diện nhất quán */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+    color: #1f2a44;
+    line-height: 1.7;
+    padding: 30px;
+    min-height: 100vh;
+}
+
+/* Tiêu đề chính */
+h1 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Container cho biểu mẫu và danh sách */
+.faq-form,
+.faq-list {
+    max-width: 900px;
+    margin: 0 auto 50px;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.faq-form:hover,
+.faq-list:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Định dạng tiêu đề biểu mẫu và danh sách */
+.faq-form h2,
+.faq-list h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #1e3a8a;
+    margin-bottom: 25px;
+}
+
+/* Định dạng biểu mẫu */
+#faqForm {
+    display: grid;
+    gap: 20px;
+}
+
+#faqForm div {
+    display: flex;
+    flex-direction: column;
+}
+
+#faqForm label {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1f2a44;
+    margin-bottom: 8px;
+}
+
+#faqForm input,
+#faqForm textarea {
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #f8fafc;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#faqForm input:focus,
+#faqForm textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+#faqForm textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+#faqForm button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#faqForm button[type="submit"] {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+    color: #fff;
+}
+
+#faqForm button[type="submit"]:hover {
+    background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+    transform: translateY(-2px);
+}
+
+#faqForm button[type="button"] {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    color: #fff;
+}
+
+#faqForm button[type="button"]:hover {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    transform: translateY(-2px);
+}
+
+/* Định dạng bảng danh sách FAQ */
+#faqTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 20px;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#faqTable th,
+#faqTable td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+#faqTable th {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+#faqTable tr:last-child td {
+    border-bottom: none;
+}
+
+#faqTable tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+#faqTable tr:hover {
+    background: #eff6ff;
+    transition: background 0.2s ease;
+}
+
+#faqTable button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#faqTable button:first-child {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    color: #fff;
+    margin-right: 8px;
+}
+
+#faqTable button:first-child:hover {
+    background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+    transform: translateY(-2px);
+}
+
+#faqTable button:last-child {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    color: #fff;
+}
+
+#faqTable button:last-child:hover {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    transform: translateY(-2px);
+}
+
+/* Responsive design cho màn hình nhỏ */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .faq-form,
+    .faq-list {
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+
+    #faqTable th,
+    #faqTable td {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    #faqForm input,
+    #faqForm textarea {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+
+    #faqForm button {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+
+    #faqTable button {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Hỗ trợ chế độ tối */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+        color: #e2e8f0;
+    }
+
+    .faq-form,
+    .faq-list {
+        background: #1f2937;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    h1,
+    .faq-form h2,
+    .faq-list h2 {
+        color: #bfdbfe;
+    }
+
+    #faqForm label {
+        color: #e2e8f0;
+    }
+
+    #faqForm input,
+    #faqForm textarea {
+        background: #374151;
+        border-color: #4b5563;
+        color: #e2e8f0;
+    }
+
+    #faqForm input:focus,
+    #faqForm textarea:focus {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+
+    #faqTable th {
+        background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+    }
+
+    #faqTable tr:nth-child(even) {
+        background: #374151;
+    }
+
+    #faqTable tr:hover {
+        background: #4b5563;
+    }
+}
+
+/* Hiệu ứng loading (nếu cần thêm spinner sau này) */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+}
+
+#faqTable button.edit-btn {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    color: #fff;
+    margin-right: 8px;
+}
+
+#faqTable button.edit-btn:hover {
+    background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+    transform: translateY(-2px);
+}
+
+#faqTable button.delete-btn {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    color: #fff;
+}
+
+#faqTable button.delete-btn:hover {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    transform: translateY(-2px);
+}

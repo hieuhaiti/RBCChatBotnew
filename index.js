@@ -43,12 +43,15 @@ app.use(cors());
 app.use(helmet());
 app.use(bodyParser.json());
 
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public'))); // Thêm dòng này
+
 // Routes
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api', primaryRoute);
 
-app.use('/', (req, res) => {
-  res.send('Welcome to the API');
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // Middleware xử lý lỗi
 // app.use(notFoundHandler);

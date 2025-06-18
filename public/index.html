@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>Quản lí câu hỏi câu trả lời mẫu (FAQ)</h1>
+
+    <div class="faq-form">
+        <h2>Thêm/Sửa FAQ</h2>
+        <form id="faqForm">
+            <div>
+                <label for="question">Câu hỏi</label>
+                <input type="text" id="question" required>
+            </div>
+            <div>
+                <label for="answer">Trả lời</label>
+                <textarea id="answer" required></textarea>
+            </div>
+            <input type="hidden" id="pageId" value="381197225080977">
+            <input type="hidden" id="priority" value="1">
+            <input type="hidden" id="assistantId" value="asst_S2VCA6HHZRzb7BBGITjAXMod">
+            <div>
+                <button type="submit">Lưu</button>
+                <button type="button" id="cancelBtn">Hủy</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="faq-list">
+        <h2>Danh sách FAQ</h2>
+        <table id="faqTable">
+            <thead>
+                <tr>
+                    <th>Câu hỏi</th>
+                    <th>Trả lời</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="faqTableBody"></tbody>
+        </table>
+    </div>
+
+    <script src="/faq.js"></script>
+</body>
+
+</html>
