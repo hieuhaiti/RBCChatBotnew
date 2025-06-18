@@ -149,6 +149,11 @@ async function getResponseMessenger(senderId, pageId, prompt) {
         const lastMessage = await getLastAssistantMessage(threadId);
         const content = lastMessage.content[0].text.value;
         const response = parseResponse(content);
+       
+        console.log("Token usage data", {
+            prompt_tokens: runData.usage.prompt_tokens,
+            total_tokens: runData.usage.total_tokens,
+        });
         await dynamoService.putItem("TokenUsageRBC", {
             usageID: uuid(),
             timestamp: new Date().toISOString(),

@@ -33,21 +33,38 @@ async function sendMessage(pageId, recipientId, text) {
 }
 
 //  Lấy tên khách hàng từ Facebook
-// async function getUserNameFromFacebook(senderId) {
+async function getUserNameFromFacebook(senderId) {
+    try {
+        const response = await axios.get(`${process.env.GRAPH_FACEBOOK_URL}/${senderId}`, {
+            params: {
+                fields: 'name',
+                access_token: process.env.PAGE_ACCESS_TOKEN,
+            },
+        });
+        return response.data.name || 'không xác định';
+    } catch (error) {
+        console.error(`Lỗi lấy tên khách hàng từ Facebook: ${error.message}`);
+        return 'không xác định';
+    }
+}
+// async function getUserNameFromFacebook(senderId, pageId) {
 //     try {
+//         const page = await dynamoService.getItem("PagesRBC", { pageID: pageId });
+//         if (!page || !page.accessToken) {
+//             throw new Error(`No access token found for page ${pageId}`);
+//         }
 //         const response = await axios.get(`${process.env.GRAPH_FACEBOOK_URL}/${senderId}`, {
 //             params: {
 //                 fields: 'name',
-//                 access_token: process.env.PAGE_ACCESS_TOKEN,
+//                 access_token: page.accessToken,
 //             },
 //         });
 //         return response.data.name || 'không xác định';
 //     } catch (error) {
-//         console.error(`Lỗi lấy tên khách hàng từ Facebook: ${error.message}`);
+//         logger.error(`Lỗi lấy tên khách hàng từ Facebook cho senderId ${senderId}, pageId ${pageId}: ${error.message}`);
 //         return 'không xác định';
 //     }
 // }
-
 // handleCustomerMessage
 async function handleCustomerMessage(senderId, pageId, message) {
     try {
@@ -64,4 +81,5 @@ async function handleCustomerMessage(senderId, pageId, message) {
 module.exports = {
     sendMessage,
     handleCustomerMessage,
+    getUserNameFromFacebook
 };
