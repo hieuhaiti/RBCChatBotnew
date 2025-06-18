@@ -43,11 +43,29 @@ const facebookController = require('../controller/facebookController');
  *     responses:
  *       200:
  *         description: Tin nhắn đã được xử lý thành công
+ *
+ * /facebook/send-message:
+ *   post:
+ *     tags: [Facebook]
+ *     summary: Gửi tin nhắn đến một ID cụ thể
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             pageId: "102602424668201"
+ *             reciverId: "9668085513282853"
+ *             message: "Xin chào, đây là tin nhắn từ bot!"
+ *     responses:
+ *       200:
+ *         description: Tin nhắn đã được gửi thành công
  */
 
 // Webhook verification
 router.get('/webhook', facebookController.verifyWebhook);
 // Handle incoming messages
 router.post('/webhook', facebookController.handleFacebookMessage);
+// Send message to id
+router.post('/send-message', facebookController.sendMessageToId);
 
 module.exports = router;

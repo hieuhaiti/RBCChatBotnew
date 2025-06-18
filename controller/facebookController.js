@@ -1,4 +1,5 @@
 const facebookService = require('../service/facebookService');
+const dynamoService = require('../service/dynamoService');
 const logger = require("../service/utils/Logger");
 const dayjs = require('dayjs');
 
@@ -17,6 +18,7 @@ async function verifyWebhook(req, res) {
     }
 }
 
+const messageStore = {};
 // Handle incoming messages
 async function handleFacebookMessage(req, res) {
     try {
@@ -25,29 +27,85 @@ async function handleFacebookMessage(req, res) {
         if (object !== 'page') {
             return res.sendStatus(404);
         }
-
+        res.sendStatus(200);
         const webhookEvent = entry[0].messaging[0];
+        const pageId = entry[0].id;
         const senderId = webhookEvent.sender.id;
         const message = webhookEvent.message.text;
         const timestamp = webhookEvent.timestamp;
-        if (webhookEvent.message && message) {
-            logger.info(`Tin nhắn từ ${senderId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}: ${message}`);
-            const response = await facebookService.handleCustomerMessage(message, senderId, logger);
-            if (response) {
-                await facebookService.sendMessage(senderId, response.text, [], logger, 5000);
-            } else {
-                await facebookService.sendMessage(senderId, "Xin lỗi, tôi không hiểu câu hỏi của bạn.", [], logger, 5000);
-            }
-        }
+        const messageId = webhookEvent.message.mid;
 
-        res.sendStatus(200);
+        if (webhookEvent.message && message) {
+            logger.info(`🟡 Tin nhắn ${messageId} từ ${senderId} tới ${pageId} lúc ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}: ${message}`);
+
+            // Kiểm tra khách hàng trong CustomersRBC
+            const result = await dynamoService.getItem("CustomersRBC", { customerID: senderId, pageID: pageId });
+
+            if (!result) {
+                // Nếu khách hàng không tồn tại, tạo mới
+                const customerData = {
+                    customerID: senderId,
+                    pageID: pageId,
+                    createAt: new Date().toISOString(),
+                    updateAt: new Date().toISOString(),
+                    threadId: '',
+                    phone: '',
+                    name: '',
+                    attribute: {},
+                };
+                await dynamoService.putItem("CustomersRBC", customerData);
+                logger.info(`🟢 Tạo mới khách hàng ${senderId} trên page ${pageId}`);
+            }
+
+            // Khởi tạo hoặc cập nhật messageStore cho senderId
+            if (!messageStore[senderId]) {
+                messageStore[senderId] = { messages: [], timer: null, lastTimestamp: timestamp };
+            }
+
+            // Thêm tin nhắn mới vào danh sách
+            messageStore[senderId].messages.push(message);
+            messageStore[senderId].lastTimestamp = timestamp;
+
+            // Hủy bộ hẹn giờ cũ nếu có
+            if (messageStore[senderId].timer) {
+                clearTimeout(messageStore[senderId].timer);
+            }
+
+            // Đặt bộ hẹn giờ mới để chờ 20 giây
+            messageStore[senderId].timer = setTimeout(async () => {
+                // Ghép tất cả tin nhắn thành một chuỗi
+                const fullMessage = messageStore[senderId].messages.join(' ');
+
+                // Xử lý tin nhắn ghép
+                await facebookService.handleCustomerMessage(senderId, pageId, fullMessage)
+                    .catch((error) => {
+                        logger.error(`🔴 Lỗi gửi phản hồi đến ${senderId}: ${error.message}`);
+                    });
+
+                // Xóa dữ liệu của senderId sau khi xử lý
+                delete messageStore[senderId];
+            }, 20 * 1000); // 20 giây
+        }
     }
     catch (error) {
+        logger.error(`🔴 Lỗi trong handleFacebookMessage: ${error.message}`);
+    }
+}
+
+// Send message to a specific user ID
+async function sendMessageToId(req, res) {
+    const { pageId, reciverId, message } = req.body;
+    try {
+        await facebookService.sendMessage(pageId, reciverId, message);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        logger.error(`🔴 Lỗi gửi tin nhắn đến ${id}: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 }
 
 module.exports = {
     verifyWebhook,
-    handleFacebookMessage
+    handleFacebookMessage,
+    sendMessageToId
 };

@@ -1,150 +1,73 @@
 const dynamoService = require('../service/dynamoService');
+const logger = require("../service/utils/Logger");
 
-// Table
-async function getTableData(req, res) {
+// GET /rbc/:table/:id - Lấy 1 item theo khóa chính (id dạng đơn)
+async function getItem(req, res) {
+    const { table, id } = req.params;
     try {
-        const { tableName } = req.params;
-        const data = await dynamoService.getTableData(tableName);
-        res.status(200).json(data);
+        const item = await dynamoService.getItem(table, { [`${table.slice(0, -3).toLowerCase()}ID`]: id }); // ví dụ "UsersRBC" => userID
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+        res.json(item);
     } catch (error) {
+        logger?.error?.("Get item error", error);
         res.status(500).json({ error: error.message });
     }
 }
 
-// Customers
-// Lưu thông tin khách hàng
-async function saveCustomer(req, res) {
+// POST /rbc/:table - Thêm item
+async function putItem(req, res) {
+    const { table } = req.params;
     try {
-        const { entities, senderId } = req.body;
-        const savedCustomer = await dynamoService.saveCustomerInfo(entities, senderId);
-        res.status(201).json(savedCustomer);
+        const item = await dynamoService.putItem(table, req.body);
+        res.status(200).json(item);
     } catch (error) {
+        logger?.error?.("Put item error", error);
         res.status(500).json({ error: error.message });
     }
 }
 
-// Lấy thông tin khách hàng
-async function getCustomer(req, res) {
+// DELETE /rbc/:table - Xóa item
+async function deleteItem(req, res) {
+    const { table } = req.params;
     try {
-        const { senderId } = req.params;
-        const customer = await dynamoService.getCustomerInfo(senderId);
-        res.status(200).json(customer);
+        await dynamoService.deleteItem(table, req.body); // truyền Key từ body
+        res.status(200).json({ message: 'Deleted' });
     } catch (error) {
+        logger?.error?.("Delete item error", error);
         res.status(500).json({ error: error.message });
     }
 }
 
-// Xóa thông tin khách hàng
-async function deleteCustomer(req, res) {
+// GET /rbc/scan/:table - Quét tất cả item trong bảng
+async function scanTable(req, res) {
+    const { table } = req.params;
     try {
-        const { senderId } = req.params;
-        await dynamoService.deleteCustomerInfo(senderId);
-        res.status(200).json({ message: 'Customer deleted successfully' });
+        const items = await dynamoService.scanTable(table);
+        res.json(items);
     } catch (error) {
+        logger?.error?.("Scan table error", error);
         res.status(500).json({ error: error.message });
     }
 }
 
-// Prompts
-// Lưu prompt
-async function savePrompt(req, res) {
+// POST /rbc/query - Truy vấn theo GSI
+async function queryByIndex(req, res) {
+    const { tableName, indexName, keyName, keyValue, rangeKeyName, rangeKeyValue } = req.body;
     try {
-        const { prompt } = req.body;
-        await dynamoService.savePrompt(prompt);
-        res.status(200).json({ message: 'Prompt saved successfully' });
+        const result = await dynamoService.queryByIndex(
+            tableName, indexName, keyName, keyValue, rangeKeyName, rangeKeyValue
+        );
+        res.json(result);
     } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// Lấy prompt
-async function getPrompt(req, res) {
-    try {
-        const prompt = await dynamoService.getPrompt();
-        res.status(200).json({ prompt });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// Xóa prompt
-async function deletePrompt(req, res) {
-    try {
-        const { promptId } = req.params;
-        await dynamoService.deletePrompt(promptId);
-        res.status(200).json({ message: 'Prompt deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// FAQs
-// Lưu FAQ
-async function saveFAQ(req, res) {
-    try {
-        const { faq } = req.body;
-        await dynamoService.saveFAQ(faq);
-        res.status(200).json({ message: 'FAQ saved successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// Lấy FAQ
-async function getFAQ(req, res) {
-    try {
-        const { question } = req.query;
-        const faqs = await dynamoService.getFAQ(question);
-        res.status(200).json(faqs);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-// Xóa FAQ
-async function deleteFAQ(req, res) {
-    try {
-        const { faqId } = req.params;
-        await dynamoService.deleteFAQ(faqId);
-        res.status(200).json({ message: 'FAQ deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// TokenUsage
-// Lấy token usage
-async function getTokenUsage(req, res) {
-    try {
-        const { token_id } = req.params;
-        const tokenUsage = await dynamoService.getTokenUsage(token_id);
-        res.status(200).json(tokenUsage);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// Thêm token usage
-async function addTokenUsage(req, res) {
-    try {
-        const { promptTokens, completionTokens, senderId } = req.body;
-        await dynamoService.addTokenUsage(promptTokens, completionTokens, senderId);
-        res.status(200).json({ message: 'Token usage logged successfully' });
-    } catch (error) {
+        logger?.error?.("Query error", error);
         res.status(500).json({ error: error.message });
     }
 }
 
 module.exports = {
-    getTableData,
-    saveCustomer,
-    getCustomer,
-    deleteCustomer,
-    savePrompt,
-    getPrompt,
-    deletePrompt,
-    saveFAQ,
-    getFAQ,
-    deleteFAQ,
-    getTokenUsage,
-    addTokenUsage,
+    getItem,
+    putItem,
+    deleteItem,
+    scanTable,
+    queryByIndex,
 };
