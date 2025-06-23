@@ -1,4 +1,4 @@
-const { CreateTableCommand } = require("@aws-sdk/client-dynamodb");
+const { CreateTableCommand, ListTablesCommand } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
 const dbConnection = require("./db");
 const logger = require("../service/utils/Logger");
@@ -71,7 +71,6 @@ async function setupTables() {
             AttributeDefinitions: [
                 { AttributeName: "pageID", AttributeType: "S" },
                 { AttributeName: "userID", AttributeType: "S" },
-
             ],
             ProvisionedThroughput: {
                 ReadCapacityUnits: 5,
@@ -116,18 +115,17 @@ async function setupTables() {
                         WriteCapacityUnits: 5,
                     },
                 },
-
             ],
         },
         {
             TableName: "TokenUsageRBC",
             KeySchema: [
-                { AttributeName: "usageID", KeyType: "HASH" }, // UUID, khóa phân vùng
-                { AttributeName: "timestamp", KeyType: "RANGE" }, // Sắp xếp theo thời gian
+                { AttributeName: "usageID", KeyType: "HASH" },
+                { AttributeName: "timestamp", KeyType: "RANGE" },
             ],
             AttributeDefinitions: [
-                { AttributeName: "usageID", AttributeType: "S" }, // UUID
-                { AttributeName: "timestamp", AttributeType: "S" }, // ISO 8601, ví dụ: "2025-05-27T10:00:00Z"
+                { AttributeName: "usageID", AttributeType: "S" },
+                { AttributeName: "timestamp", AttributeType: "S" },
                 { AttributeName: "customerID", AttributeType: "S" },
                 { AttributeName: "pageID", AttributeType: "S" },
             ],
@@ -197,21 +195,40 @@ async function setupTables() {
         },
     ];
 
-    for (const table of tables) {
-        try {
-            await dynamoDB.send(new CreateTableCommand(table));
-            logger.info(`Table ${table.TableName} created successfully`);
-            await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for table to be ready
-        } catch (error) {
-            if (error.name === "ResourceInUseException") {
-                logger.info(`Table ${table.TableName} already exists, skipping creation`);
-            } else {
-                logger.error(`Error creating table ${table.TableName}: ${error.message}`, {
-                    stack: error.stack,
-                });
-                throw error;
+    // Lấy danh sách tất cả bảng hiện có trong DynamoDB
+    try {
+        const listTables = await dbConnection.send(new ListTablesCommand({}));
+        const existingTables = listTables.TableNames || [];
+
+        // Tạo danh sách các bảng đã có sẵn và chưa có sẵn
+        const tablesToCreate = tables.map(table => table.TableName);
+        const alreadyExisting = tablesToCreate.filter(tableName => existingTables.includes(tableName));
+        const notExisting = tablesToCreate.filter(tableName => !existingTables.includes(tableName));
+
+        // Ghi log một lần duy nhất
+        logger.info(`Existing tables: ${alreadyExisting.length > 0 ? alreadyExisting.join(', ') : 'None'}`);
+        logger.info(`Tables to be created: ${notExisting.length > 0 ? notExisting.join(', ') : 'None'}`);
+
+        // Tiến hành tạo bảng
+        for (const table of tables) {
+            try {
+                await dynamoDB.send(new CreateTableCommand(table));
+                logger.info(`Table ${table.TableName} created successfully`);
+                await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for table to be ready
+            } catch (error) {
+                if (error.name === "ResourceInUseException") {
+                    // Bỏ qua vì đã ghi log trước đó
+                } else {
+                    logger.error(`Error creating table ${table.TableName}: ${error.message}`, {
+                        stack: error.stack,
+                    });
+                    throw error;
+                }
             }
         }
+    } catch (error) {
+        logger.error("Error listing tables or creating tables:", { stack: error.stack });
+        throw error;
     }
 }
 
